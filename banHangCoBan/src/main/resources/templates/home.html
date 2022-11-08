@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <title>Document</title>
+    <th:block th:replace="layouts/head"/>
+</head>
+
+<body class="container-fluid bg-secondary">
+<div class="row">
+
+    <!-- Danh Sách Bàn -->
+
+    <div class="col-3" style="padding-top: 10px;">
+        <table style="background-color: #edd5a8;">
+            <thead>
+            <tr>
+                <th colspan="3" style="padding: 10px;" class="text-center"><h4>Bàn Trong Nhà</h4></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td style="padding: 10px;">
+                    <button class="showBill w-100" id="table1" data-id="1" style="height: 60px;">Bàn 1</button>
+                </td>
+                <td style="padding: 10px;">
+                    <button class="showBill w-100" id="table2" data-id="2" style="height: 60px;">Bàn 2</button>
+                </td>
+                <td style="padding: 10px;">
+                    <button class="showBill w-100" id="table3" data-id="3" style="height: 60px;">Bàn 3</button>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 10px;">
+                    <button class="showBill w-100" id="table4" data-id="4" style="height: 60px;">Bàn 4</button>
+                </td>
+                <td style="padding: 10px;">
+                    <button class="showBill w-100" id="table5" data-id="5" style="height: 60px;">Bàn 5</button>
+                </td>
+                <td style="padding: 10px;">
+                    <button class="showBill w-100" id="table6" data-id="6" style="height: 60px;">Bàn 6</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Order -->
+
+    <div class="col-3 hide" id="modalBill" style="padding-top: 10px;">
+        <div class="bg-light w-100">
+            <!-- Thông tin -->
+            <div style="padding: 20px;">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>
+                            <h4 class="text-primary">Bàn số :</h4>
+                            <input hidden id="tableId">
+                        </th>
+                        <th class="text-center">
+                            <h4 class="text-primary" id="billTable"></h4>
+                        </th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <th>
+                            <h5 class="text-black">Thời gian :</h5>
+                        </th>
+                        <th colspan="2">
+                             <h5 class="text-black" id="billTime"></h5>
+                        </th>
+                    </tr>
+                    </thead>
+                </table>
+            </div>
+            <!-- Bill -->
+            <div style="padding: 10px;">
+                <table class="border border-secondary w-100">
+                    <tbody style="background-color: rgba(227, 224, 119, 0.38);" id="tbBill">
+
+                    </tbody>
+                    <tfoot>
+                    <tr style="font-size: larger;">
+                        <td style="padding: 0 10px;">
+                            Tổng tiền:
+                        </td>
+                        <td class="text-danger text-end" id="totalPrice" colspan="2" style="padding-right: 10px">
+
+                        </td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <!-- Actions -->
+        <div class="row" style="padding-top: 10px;">
+            <div class="col-4">
+                <button style="width: 100%;" class="btn btn-warning checkOut hide">Thanh Toán</button>
+            </div>
+            <div class="col-4">
+                <button style="width: 100%;" class="btn btn-success showMenu show">Thêm Món</button>
+            </div>
+            <div class="col-4">
+                <button style="width: 100%;" class="btn btn-danger closeBill">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu -->
+    <div class="col-4 hide" id="modalMenu" style="margin-top: 10px; background-color: #edd5a8;">
+        <h4 class="text-center text-success">Danh sách nước uống</h4>
+        <div id="menu" class="row" style="padding: 5px;">
+
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="layouts/script"/>
+<script>
+    let page = {
+        urls: {
+            getAllProducts: App.BASE_URL_Product,
+            getProductById: App.BASE_URL_Product,
+        },
+        elements: {},
+        loadData: {},
+        commands: {},
+        dialogs: {
+            elements: {},
+            loadData: {},
+            commands: {},
+        },
+        initializeEventControl: {}
+    }
+
+    page.elements.showMenu = $("#menu");
+    page.elements.modalBill = $("#modalBill");
+    page.elements.billTable = $("#billTable");
+    page.elements.tbBill = $("#tbBill");
+    page.elements.modalMenu = $("#modalMenu");
+
+    page.commands.getAllProducts = () => {
+        return $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "GET",
+            url: page.urls.getAllProducts
+        })
+            .done((data) => {
+                page.elements.showMenu.empty();
+                data.map(item => {
+                    page.elements.showMenu.append(App.renderProduct(item));
+                });
+            })
+            .fail((jqXHR) => {
+                App.SweetAlert.showAlertError(App.AlertMessageVi.ERROR_500);
+            })
+    }
+
+    page.commands.getProductById = (productId) => {
+        $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "GET",
+            url: page.urls.getProductById + "/" + productId
+        })
+            .done((data) => {
+            })
+            .fail((jqXHR) => {
+                App.SweetAlert.showAlertError(App.AlertMessageVi.ERROR_500);
+            })
+    }
+    page.commands.handOpenBill = () => {
+        $(".showBill").on("click", function () {
+            let tableId = $(this).data("id");
+            page.elements.billTable.empty()
+            page.elements.billTable.append(" " + tableId)
+            $("#tableId").val(tableId);
+
+            page.elements.modalBill.addClass("show").removeClass("hide");
+            page.commands.getCartItems();
+            page.commands.removeHandleOpen();
+            page.commands.handOpenBill();
+            page.commands.handOpenMenu();
+            page.commands.handleAddCart();
+        })
+    }
+
+    $(".closeBill").on("click", function () {
+        page.elements.billTable.empty()
+
+        page.elements.modalBill.addClass("hide").removeClass("show");
+        page.elements.modalMenu.addClass("hide").removeClass("show");
+        $(".showMenu").removeClass("hide").addClass("show");
+    })
+
+    page.commands.handOpenMenu = () => {
+        $(".showMenu").on("click", function () {
+            $(".showMenu").removeClass("show").addClass("hide");
+            page.elements.modalMenu.addClass("show").removeClass("hide");
+        })
+    }
+
+    page.commands.checkTable = (numberTable) => {
+        $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "GET",
+            url: "http://localhost:9095/api/cart-items" + "/" + numberTable
+        })
+            .done((data) => {
+                if (data != undefined) {
+                    $("#table" + numberTable).addClass("bg-success");
+                    $(".checkOut").addClass("show").removeClass("hide");
+                }
+                else {
+                    $("#table" + numberTable).removeClass("bg-success");
+                    $(".checkOut").addClass("hide").removeClass("show");
+                }
+            })
+            .fail((jqXHR) => {
+            })
+    }
+
+    page.commands.getCartItems = () => {
+        $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "GET",
+            url: "http://localhost:9095/api/cart-items" + "/" + $("#tableId").val()
+        })
+            .done((data) => {
+                $("#tbBill").empty();
+                $("#totalPrice").empty();
+                $("#billTime").empty();
+                let totalPrice = 0;
+                $.each(data, (i, item) => {
+                    $("#billTime").text((item.createdAt.replace("+0700", "")));
+                    return;
+                })
+                $.each(data, (i, item) => {
+                    totalPrice += item.productPrice * item.quantity;
+                    let str = App.renderBill(item);
+                    $("#tbBill").append(str);
+                })
+                if (data != undefined) {
+                    let tableId = $("#tableId").val();
+                    page.commands.checkTable(tableId);
+                }
+                $("#totalPrice").append(
+                    new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND'
+                    }).format(totalPrice)
+                )
+                page.commands.handleMinusQuantity();
+                page.commands.handleRemoveCartItem();
+            })
+            .fail((jqXHR) => {
+            })
+    }
+
+    page.commands.handleAddCart = () => {
+        $(".add-cart").on("click", function () {
+
+            let productId = $(this).data("id");
+
+            let cartItem = {
+                productId
+            }
+            $.ajax({
+                headers: {
+                    "accept": "application/json",
+                    "content-type": "application/json"
+                },
+                type: "POST",
+                url: "http://localhost:9095/api/carts/add/" + $("#tableId").val(),
+                data: JSON.stringify(cartItem)
+            })
+                .done((data) => {
+                    let tableId = $("#tableId").val();
+                    page.commands.getCartItems(tableId);
+                    page.commands.checkTable(tableId);
+                    page.commands.handOpenMenu();
+                })
+                .fail((jqXHR) => {
+                })
+
+        })
+    }
+
+    page.commands.handleMinusQuantity = () => {
+        let btnMinusQuantity = $(".minus");
+
+        btnMinusQuantity.off();
+
+        btnMinusQuantity.on("click", function () {
+            let cartItemId = $(this).data("id");
+
+            let currentQuantity = $("#quantity_" + cartItemId).val();
+
+            if (currentQuantity == 1) {
+                App.SweetAlert.showSuspendedConfirmDialog()
+                .then((result) => {
+                    if (result.isConfirmed) {
+                        page.commands.removeCartItem(cartItemId);
+                    }
+                })
+            } else {
+                page.commands.minusQuantity(cartItemId);
+            }
+        })
+    }
+
+    page.commands.minusQuantity = (cartItemId) => {
+        $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "PATCH",
+            url: "http://localhost:9095/api/cart-items/minus/" + cartItemId
+        })
+            .done((data) => {
+                iziToast.success({
+                    title: 'OK',
+                    position: 'bottomLeft',
+                    timeout: 1500,
+                    message: 'Giảm số lượng sản phẩm thành công'
+                });
+                let tableId = data.table;
+                page.commands.getCartItems(tableId);
+                page.commands.handleMinusQuantity();
+                page.commands.handleRemoveCartItem();
+            })
+            .fail((jqXHR) => {
+            })
+    }
+
+    page.commands.removeCartItem = (cartItemId) => {
+        $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "DELETE",
+            url: "http://localhost:9095/api/cart-items/delete/" + cartItemId
+        })
+            .done((data) => {
+                $("#tr_" + cartItemId).remove();
+
+                iziToast.success({
+                    title: 'OK',
+                    position: 'bottomLeft',
+                    timeout: 1500,
+                    message: 'Xóa sản phẩm khỏi giỏ thành công'
+                });
+                let tableId = $("#tableId").val();
+                page.commands.getCartItems(tableId);
+                page.commands.checkTable(tableId);
+            })
+            .fail((jqXHR) => {
+            })
+    }
+
+    page.commands.handleRemoveCartItem = () => {
+        let removeCart = $(".removeCart");
+        removeCart.off();
+        removeCart.on("click", function () {
+            let cartItem = $(this).data("id");
+            App.SweetAlert.showSuspendedConfirmDialog()
+                .then((result) => {
+                    if (result.isConfirmed) {
+                        page.commands.removeCartItem(cartItem);
+                    }
+                })
+        })
+    }
+
+    page.commands.checkout = () => {
+        $.ajax({
+            headers: {
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+            type: "POST",
+            url: "http://localhost:9095/api/carts/checkout/" + $("#tableId").val()
+        })
+            .done(() => {
+                let tableId = $("#tableId").val();
+                $("#panelCart .cart-items").empty();
+
+                iziToast.success({
+                    title: 'OK',
+                    position: 'bottomLeft',
+                    timeout: 1500,
+                    message: 'Đặt hàng thành công'
+                });
+                page.commands.getCartItems(tableId);
+                page.commands.checkTable(tableId);
+            })
+            .fail((jqXHR) => {
+                console.log((jqXHR));
+
+                iziToast.error({
+                    title: 'ERROR',
+                    position: 'bottomLeft',
+                    timeout: 2000,
+                    message: 'Đặt hàng không thành công'
+                });
+            })
+    }
+
+    page.commands.handleCheckout = () => {
+        $(".checkOut").on("click", () => {
+
+            page.commands.checkout();
+        })
+    }
+
+    page.initializeEventControl = () => {
+        page.commands.removeHandleOpen();
+        page.commands.handOpenBill();
+        page.commands.handOpenMenu();
+        page.commands.handleAddCart();
+    }
+
+    page.commands.waitingOpenModal = () => {
+
+    }
+
+    page.commands.removeHandleOpen = () => {
+        $(".showBill").off();
+        $(".showMenu").off();
+        $(".add-cart").off();
+    }
+
+    page.loadData = () => {
+        page.commands.getAllProducts();
+        for (let i = 1; i <= 6; i++) {
+            page.commands.checkTable(i);
+        }
+
+    }
+
+    $(() => {
+        page.loadData();
+
+        page.initializeEventControl();
+
+        page.commands.handleCheckout();
+    })
+</script>
+</body>
+
+</html>
